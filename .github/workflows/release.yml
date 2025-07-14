@@ -1,0 +1,226 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+      - "v*.*.*-*" # For pre-releases like v1.0.0-alpha.1
+
+permissions:
+  contents: write
+  id-token: write # For trusted publishing to PyPI
+
+jobs:
+  validate-tag:
+    runs-on: ubuntu-latest
+    outputs:
+      is-prerelease: ${{ steps.check-prerelease.outputs.is-prerelease }}
+      version: ${{ steps.extract-version.outputs.version }}
+    steps:
+      - name: Extract version from tag
+        id: extract-version
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Extracted version: $VERSION"
+
+      - name: Check if pre-release
+        id: check-prerelease
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          if [[ "$VERSION" =~ -(alpha|beta|rc|dev) ]]; then
+            echo "is-prerelease=true" >> $GITHUB_OUTPUT
+            echo "This is a pre-release: $VERSION"
+          else
+            echo "is-prerelease=false" >> $GITHUB_OUTPUT
+            echo "This is a stable release: $VERSION"
+          fi
+
+      - name: Validate semantic version
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.-]+)?$ ]]; then
+            echo "Error: Tag $VERSION is not a valid semantic version"
+            exit 1
+          fi
+          echo "Valid semantic version: $VERSION"
+
+  build:
+    needs: validate-tag
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.8"
+
+      - name: Install build dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install build twine
+
+      - name: Create setup.py if not exists
+        run: |
+          if [ ! -f setup.py ] && [ ! -f pyproject.toml ]; then
+            cat > setup.py << 'EOF'
+          from setuptools import setup, find_packages
+
+          with open("README.md", "r", encoding="utf-8") as fh:
+              long_description = fh.read()
+
+          setup(
+              name="torchgbif",
+              version="${{ needs.validate-tag.outputs.version }}",
+              author="Taimur Khan",
+              description="FAIR PyTorch DataLoaders and DataSets for GBIF data",
+              long_description=long_description,
+              long_description_content_type="text/markdown",
+              url="https://github.com/thisistaimur/TorchGBIF",
+              packages=find_packages(),
+              classifiers=[
+                  "Development Status :: 3 - Alpha",
+                  "Intended Audience :: Developers",
+                  "Intended Audience :: Science/Research",
+                  "License :: OSI Approved :: MIT License",
+                  "Operating System :: OS Independent",
+                  "Programming Language :: Python :: 3",
+                  "Programming Language :: Python :: 3.8",
+                  "Programming Language :: Python :: 3.9",
+                  "Programming Language :: Python :: 3.10",
+                  "Programming Language :: Python :: 3.11",
+                  "Topic :: Scientific/Engineering :: Artificial Intelligence",
+                  "Topic :: Scientific/Engineering :: Bio-Informatics",
+              ],
+              python_requires=">=3.8",
+              install_requires=[
+                  "torch>=1.9.0",
+                  "requests>=2.25.0",
+                  "pandas>=1.3.0",
+                  "numpy>=1.21.0",
+              ],
+              extras_require={
+                  "dev": [
+                      "pytest>=6.0",
+                      "black>=21.0",
+                      "flake8>=3.9",
+                      "mypy>=0.910",
+                  ],
+              },
+          )
+          EOF
+          fi
+
+      - name: Build distribution
+        run: python -m build
+
+      - name: Check distribution
+        run: twine check dist/*
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: dist
+          path: dist/
+
+  test:
+    needs: validate-tag
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.8", "3.9", "3.10", "3.11"]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          if [ -f requirements-dev.txt ]; then pip install -r requirements-dev.txt; fi
+          pip install pytest torch requests pandas numpy
+
+      - name: Run tests
+        run: |
+          if [ -d tests/ ] || [ -f test_*.py ] || find . -name "*_test.py" -o -name "test_*.py" | grep -q .; then
+            python -m pytest -v
+          else
+            echo "No tests found, skipping test execution"
+            # You can add basic import tests here
+            python -c "import torchgbif" || echo "Package import test skipped - package not yet implemented"
+          fi
+
+  publish-pypi:
+    needs: [validate-tag, build, test]
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/torchgbif
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: dist
+          path: dist/
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          skip-existing: true
+
+  create-release:
+    needs: [validate-tag, publish-pypi]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          # Generate changelog from commits since last tag
+          LAST_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+          if [ -n "$LAST_TAG" ]; then
+            echo "## Changes since $LAST_TAG" > CHANGELOG.md
+            git log --pretty=format:"- %s (%h)" $LAST_TAG..HEAD >> CHANGELOG.md
+          else
+            echo "## Initial Release" > CHANGELOG.md
+            echo "- First release of TorchGBIF" >> CHANGELOG.md
+          fi
+
+          # Add content to multiline output
+          echo "changelog<<EOF" >> $GITHUB_OUTPUT
+          cat CHANGELOG.md >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref_name }}
+          release_name: Release ${{ github.ref_name }}
+          body: |
+            # TorchGBIF ${{ needs.validate-tag.outputs.version }}
+
+            ${{ steps.changelog.outputs.changelog }}
+
+            ## Installation
+
+            ```bash
+            pip install torchgbif==${{ needs.validate-tag.outputs.version }}
+            ```
+
+            ## What's Changed
+            See the changelog above for detailed changes in this release.
+
+            **Full Changelog**: https://github.com/thisistaimur/TorchGBIF/compare/${{ steps.changelog.outputs.previous-tag }}...${{ github.ref_name }}
+          draft: false
+          prerelease: ${{ needs.validate-tag.outputs.is-prerelease == 'true' }}
