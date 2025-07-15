@@ -1,5 +1,5 @@
 <p align="center">
-    <img src="static/logo2.png" alt="Logo" width="400">
+    <img src="static/logo2_nobg.png" alt="Logo" width="400">
 </p>
 
 [![PyPI version](https://badge.fury.io/py/torchgbif.svg)](https://badge.fury.io/py/torchgbif)
@@ -27,7 +27,7 @@ cd TorchGBIF
 pip install -e .
 ```
 
-## Aviable DataSets
+## Avaible DataSets
 
 - `GBIFSpeciesDataSet`: A generic dataset for GBIF species occurence data.
 - `GBIFImageDataSet`: A dataset for GBIF data with images.
