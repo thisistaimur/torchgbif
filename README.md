@@ -2,11 +2,12 @@
     <img src="static/logo2.png" alt="Logo" width="400">
 </p>
 
-## TorchGBIF: FAIR PyTorch DataLoaders and DataSets for GBIF data
+[![PyPI version](https://badge.fury.io/py/torchgbif.svg)](https://badge.fury.io/py/torchgbif)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://opensource.org/license/mit/)
 
-TorchGBIF is a PyTorch library that provides DataLoaders and DataSets for GBIF (Global Biodiversity Information Facility) data, enabling easy access to biodiversity data for machine learning tasks.
+TorchGBIF is a PyTorch library that provides FAIR (Findable, Accessible, Interoperable, Reusable) DataLoaders and DataSets for GBIF (Global Biodiversity Information Facility) data, enabling easy access to biodiversity data for machine learning tasks with research reproducibility.
 
-GBIF is a global network and data infrastructure that provides access to data about all types of life on Earth, including species occurrence records, taxonomic information, images, audio and more.The GBIF API provides acces to this data via SQL queries, however the data itself is not in a format that can be used directly with PyTorch. TorchGBIF provides a set of DataLoaders and DataSets that can be used to easily access GBIF data in a format that is compatible with PyTorch.
+GBIF is a global network and data infrastructure that provides access to data about all types of life on Earth, including species occurrence records, taxonomic information, images, audio and more.The GBIF API provides acces to this data via SQL queries, however the data itself is not in a format that can be used directly with PyTorch. TorchGBIF provides a set of DataLoaders and DataSets that can be used to easily access GBIF data in a format that is compatible with PyTorch, while automatically generating RO-Crates for FAIR research workflows.
 
 Read the BioHackArxiv paper for more details: [paper.md](paper.md)
 
@@ -59,8 +60,3 @@ If you use TorchGBIF in your research, please cite it as follows:
   url = {https://github.com/thisistaimur/TorchGBIF}
 }
 ```
-
-
-
-
-
