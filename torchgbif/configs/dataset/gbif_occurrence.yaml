@@ -1,0 +1,42 @@
+# GBIF Occurrence Dataset Configuration
+# Default configuration for general GBIF occurrence data
+
+_target_: torchgbif.datasets.GBIFOccurrenceDataset
+
+# Authentication - use environment variables
+username: ${oc.env:GBIF_USERNAME}
+password: ${oc.env:GBIF_PASSWORD}
+email: ${oc.env:GBIF_EMAIL}
+
+# Data storage
+data_dir: "./data/gbif_occurrence"
+cache_processed: true
+
+# SQL query for occurrence data
+sql_query: |
+  SELECT gbifId, taxonKey, scientificName, family, genus, species,
+         countryCode, decimalLatitude, decimalLongitude, elevation,
+         "year", "month", coordinateUncertaintyInMeters
+  FROM occurrence 
+  WHERE hasGeospatialIssues = false 
+    AND hasCoordinate = true
+    AND occurrenceStatus = 'PRESENT'
+    AND countryCode = 'DE'
+  LIMIT 1000
+
+# Features to use for ML
+feature_columns:
+  - decimallatitude
+  - decimallongitude
+  - elevation
+  - year
+  - month
+  - coordinateuncertaintyinmeters
+
+# Target column (null for unsupervised learning)
+target_column: null
+
+# Processing options
+max_records: 1000
+download_timeout: 1800 # 30 minutes
+chunk_size: 500

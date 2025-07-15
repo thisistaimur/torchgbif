@@ -1,0 +1,75 @@
+# Main configuration file for TorchGBIF datasets
+# This file defines the default configuration schema
+
+# Dataset configuration
+dataset:
+  _target_: torchgbif.datasets.GBIFOccurrenceDataset
+
+  # GBIF authentication (override with environment variables or local config)
+  username: ${oc.env:GBIF_USERNAME}
+  password: ${oc.env:GBIF_PASSWORD}
+  email: ${oc.env:GBIF_EMAIL}
+
+  # Data storage
+  data_dir: "./data/gbif"
+  cache_processed: true
+
+  # SQL query for data download for Stork
+  sql_query: |
+    SELECT gbifid, taxonkey, scientificname, countrycode,
+           decimallatitude, decimallongitude, "year", "month"
+    FROM occurrence 
+    WHERE hasGeospatialIssues = false 
+      AND hasCoordinate = true
+      AND countryCode = 'DE'
+      AND taxonKey = 2481912
+    LIMIT 10000
+
+  # Feature configuration
+  feature_columns:
+    - decimallatitude
+    - decimallongitude
+    - elevation
+    - year
+    - month
+    - day
+    - coordinateuncertaintyinmeters
+
+  target_column: null # Set to column name for supervised learning
+
+  # Data processing options
+  max_records: 10000
+  download_timeout: 3600
+  chunk_size: 10000
+
+# DataLoader configuration
+dataloader:
+  batch_size: 128
+  shuffle: true
+  num_workers: 0
+  pin_memory: false
+  drop_last: false
+  save_dir: "./data/batches"
+  save_metadata: true
+
+# Batch saving configuration
+batch_saving:
+  enabled: true
+  output_dir: "./data/saved_batches"
+  max_batches: null # null means save all batches
+  include_metadata: true
+
+# Hydra configuration
+hydra:
+  run:
+    dir: ./outputs/${now:%Y-%m-%d}/${now:%H-%M-%S}
+  sweep:
+    dir: ./multirun/${now:%Y-%m-%d}/${now:%H-%M-%S}
+    subdir: ${hydra:job.num}
+
+defaults:
+  - _self_
+  - dataset: gbif_occurrence # Can be overridden
+  - dataloader: default
+  - override hydra/hydra_logging: disabled
+  - override hydra/job_logging: disabled

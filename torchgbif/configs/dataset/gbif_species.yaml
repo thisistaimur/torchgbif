@@ -1,0 +1,54 @@
+# GBIF Species Dataset Configuration  
+# Unified configuration for single or multiple species downloads
+
+_target_: torchgbif.datasets.GBIFSpeciesDataset
+
+# Authentication 
+username: ${oc.env:GBIF_USERNAME}
+password: ${oc.env:GBIF_PASSWORD}
+email: ${oc.env:GBIF_EMAIL}
+
+
+# Data storage
+data_dir: "./data/gbif_species"
+cache_processed: true
+
+# Unified taxonomic criteria (supports both single values and lists)
+# Single species (backward compatible)
+taxon_key: 2435099 # Single taxon key, e.g., 2435099 (bee species for testing)
+scientific_name: null # Single scientific name, e.g., "Apis mellifera"
+country_code: "DE" # Single country code, e.g., "US"
+
+# Multi-species 
+taxon_keys: null # List of taxon keys, e.g., [2435099, 1340251]
+scientific_names: null # List of scientific names, e.g., ["Apis mellifera", "Bombus terrestris"]
+families: null # List of family names, e.g., ["Apidae", "Megachilidae"]
+genera: null # List of genus names, e.g., ["Quercus", "Acer"]
+species: null # List of species names
+country_codes: null # List of country codes, e.g., ["US", "CA", "MX"]
+
+# Temporal and quality filters
+year_range: [2000, 2024] # [start_year, end_year]
+has_coordinate: true
+has_geospatial_issues: false
+
+# Performance options
+max_records_per_taxon: null # Maximum records per taxon (null = no limit)
+max_records: 1000 # Overall maximum records (small for testing)
+
+# Features for species distribution modeling
+feature_columns:
+  - decimallatitude
+  - decimallongitude
+  - elevation
+  - year
+  - month
+  - coordinateuncertaintyinmeters
+
+# Target for species classification/prediction
+target_column: "species" # or "taxonKey" for numeric targets
+
+# Processing options
+max_records: 1000 # Small dataset for testing
+download_timeout: 3600 # Shorter timeout for testing
+chunk_size: 1000

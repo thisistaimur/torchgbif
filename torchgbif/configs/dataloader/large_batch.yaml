@@ -1,0 +1,10 @@
+# Large Batch DataLoader Configuration
+# For processing large datasets or when you want fewer, larger batches
+
+batch_size: 128
+shuffle: true
+num_workers: 4
+pin_memory: true
+drop_last: false
+save_dir: "./data/large_batches"
+save_metadata: true

@@ -1,0 +1,9 @@
+# Default DataLoader Configuration
+
+batch_size: 32
+shuffle: true
+num_workers: 0
+pin_memory: false
+drop_last: false
+save_dir: "./data/batches"
+save_metadata: true

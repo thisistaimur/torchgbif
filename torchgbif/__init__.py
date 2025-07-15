@@ -16,17 +16,38 @@ __author__ = "Taimur Khan"
 __email__ = ""
 __license__ = "MIT"
 
-# Import main classes when they are implemented
-# from .datasets import GBIFSpeciesDataSet, GBIFImageDataSet, GBIFAudioDataSet
-# from .dataloaders import GBIFDataLoader
+# Import main classes
+from .datasets import GBIFOccurrenceDataset, GBIFSpeciesDataset
+from .dataloaders import GBIFDataLoader, BatchLoader
+from .config_manager import TorchGBIFConfig, create_gbif_dataset, create_gbif_dataloader
+from .utils import get_available_columns, get_feature_recommendations
+
+# FAIR data management (optional import)
+try:
+    from .fair import FAIRDataManager, create_fair_batch_workflow
+
+    _FAIR_AVAILABLE = True
+except ImportError:
+    _FAIR_AVAILABLE = False
+    FAIRDataManager = None
+    create_fair_batch_workflow = None
 
 __all__ = [
     "__version__",
     "__author__",
     "__email__",
     "__license__",
-    # "GBIFSpeciesDataSet",
-    # "GBIFImageDataSet",
-    # "GBIFAudioDataSet",
-    # "GBIFDataLoader",
+    "GBIFOccurrenceDataset",
+    "GBIFSpeciesDataset",
+    "GBIFDataLoader",
+    "BatchLoader",
+    "TorchGBIFConfig",
+    "create_gbif_dataset",
+    "create_gbif_dataloader",
+    "get_available_columns",
+    "get_feature_recommendations",
 ]
+
+# Add FAIR components if available
+if _FAIR_AVAILABLE:
+    __all__.extend(["FAIRDataManager", "create_fair_batch_workflow"])
