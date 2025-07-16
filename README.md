@@ -1,5 +1,5 @@
 <p align="center">
-    <img src="static/logo2.png" alt="Logo" width="400">
+    <img src="static/logo2-nobg.png" alt="Logo" width="400">
 </p>
 
 # TorchGBIF

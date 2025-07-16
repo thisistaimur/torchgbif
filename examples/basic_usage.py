@@ -135,17 +135,20 @@ def simple_example():
     print("\n🔧 Simple API Example (without Hydra)")
     print("=" * 50)
 
-    # Get feature recommendations
-    recommendations = get_feature_recommendations("species_distribution")
-    print(
-        f"📊 Recommended features for species distribution: {recommendations['features']}"
-    )
+    # Define features directly
+    feature_columns = [
+        "decimallatitude",
+        "decimallongitude",
+        "year",
+        "month",
+        "taxonkey",
+    ]
 
     # Create dataset with simple API - use direct import to avoid Hydra parsing issues
     sql_query = """
-    SELECT gbifId, taxonKey, scientificName,
+    SELECT gbifid, taxonkey, scientificname,
            decimallatitude, decimallongitude,
-           'year', 'month'
+           "year", "month"
     FROM occurrence 
     WHERE hasGeospatialIssues = false 
       AND hasCoordinate = true
@@ -166,16 +169,63 @@ def simple_example():
             username=os.getenv("GBIF_USERNAME"),
             password=os.getenv("GBIF_PASSWORD"),
             email=os.getenv("GBIF_EMAIL"),
-            feature_columns=recommendations["features"],
-            max_records=1000,
+            feature_columns=feature_columns,
+            max_records=10000,
         )
 
         dataloader = GBIFDataLoader(
-            dataset=dataset, batch_size=16, save_dir="./simple_batches"
+            dataset=dataset, batch_size=128, save_dir="./batches"
         )
 
         print(f"✅ Created dataset with {len(dataset)} samples")
         print(f"✅ Created dataloader with batch size {dataloader.batch_size}")
+
+        # Iterate through a few batches (following main() pattern)
+        print("\n🔢 Processing batches...")
+
+        for batch_idx, batch in enumerate(dataloader):
+            if batch_idx >= 3:  # Process only first 3 batches for demo
+                break
+
+            if isinstance(batch, tuple):
+                features, targets = batch
+                print(
+                    f"  Batch {batch_idx}: Features shape: {features.shape}, Targets shape: {targets.shape}"
+                )
+            else:
+                features = batch
+                print(f"  Batch {batch_idx}: Features shape: {features.shape}")
+
+            # Save first batch as example
+            if batch_idx == 0:
+                output_path = "simple_example_batch.pt"
+                dataloader.save_batch(batch, batch_idx)
+                print(f"  💾 Saved batch to: {output_path}")
+
+        # Demonstrate batch saving (following main() pattern)
+        print("\n💾 Saving all batches...")
+        batch_dir = Path("./simple_batches")
+        saved_files = dataloader.save_all_batches(output_dir=str(batch_dir))
+
+        print(f"✅ Saved {len(saved_files)} batches to {batch_dir}")
+        print(
+            f"📊 With batch size {dataloader.batch_size}, this covers all {len(dataset)} samples"
+        )
+
+        # Load saved batches (following main() pattern)
+        print("\n📂 Loading saved batches...")
+        from torchgbif import BatchLoader
+
+        batch_loader = BatchLoader(str(batch_dir))
+        print(f"📊 {batch_loader.summary()}")
+
+        # Load a specific batch
+        first_batch = batch_loader.load_batch(0)
+        print(
+            f"📦 Loaded first batch with shape: {first_batch[0].shape if isinstance(first_batch, tuple) else first_batch.shape}"
+        )
+
+        print("\n🎉 Simple example completed successfully!")
 
     except ValueError as e:
         print(f"❌ Error: {e}")
@@ -187,7 +237,7 @@ def simple_example():
 
 if __name__ == "__main__":
     # Run the main Hydra example
-    #main()
+    # main()
 
     # Also run the simple example
     simple_example()

@@ -200,3 +200,5 @@ downloads/
 *.hdf5
 *.pkl
 *.pickle
+simple_data/
+simple_batches
